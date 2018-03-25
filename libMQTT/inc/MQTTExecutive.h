@@ -59,6 +59,7 @@ class MQTTExecutive
     static std::string LibraryVersion();
  private:
     std::map<std::string,MQTTDispatchFunction> m_messageHandlers;
+    std::string m_clientName;
 };
 
 #endif

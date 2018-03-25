@@ -24,7 +24,8 @@
 #include <sstream>
 #include <opencv2/opencv.hpp>
 #include <iostream>
-
+#include <unistd.h>
+#include <limits.h>
 
 extern void LoadExecutiveStereoConfiguration(bool enabled, int *blockSize, int *disp12MaxDiff, int *minDisparity,
                                              int *numDisparities, int *preFilterCap, int *preFilterSize, int *preFilterType,
@@ -33,8 +34,12 @@ extern void LoadExecutiveStereoConfiguration(bool enabled, int *blockSize, int *
 MQTTWrapper *MQTTExecutive::sm_publisher = nullptr;
 
 MQTTExecutive::MQTTExecutive(std::string mqttId,std::string url,int port) {
-    //sm_publisher = new MQTTWrapper(this, "MQTT#Ring", "localhost", 1883);
-    sm_publisher = new MQTTWrapper(this, mqttId.c_str(), url.c_str(), port);
+    char hostname[256];
+    int result = gethostname(hostname, 256);
+    m_clientName = std::string(hostname) + "_" + mqttId;
+    std::cout << "MQTT Client name is " << m_clientName << std::endl;
+
+    sm_publisher = new MQTTWrapper(this, m_clientName.c_str(), url.c_str(), port);
     new MQTT_Tracer(sm_publisher);
 //
 //    // connect for camera control messages
