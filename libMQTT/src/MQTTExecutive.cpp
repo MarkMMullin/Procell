@@ -35,7 +35,7 @@ MQTTWrapper *MQTTExecutive::sm_publisher = nullptr;
 
 MQTTExecutive::MQTTExecutive(std::string mqttId,std::string url,int port) {
     char hostname[256];
-    int result = gethostname(hostname, 256);
+    gethostname(hostname, 256);
     m_clientName = std::string(hostname) + "_" + mqttId;
     std::cout << "MQTT Client name is " << m_clientName << std::endl;
 
@@ -49,18 +49,27 @@ MQTTExecutive::MQTTExecutive(std::string mqttId,std::string url,int port) {
 }
 void MQTTExecutive::Dispatch(const struct mosquitto_message *message)
 {
-    std::vector<std::string> strings;
     std::istringstream f(message->topic);
 
     // break down the topic string
-    std::string s;
-    while (getline(f, s, '/')) {
-        strings.push_back(s);
-    }
+    std::string topicStr = message->topic;
+
+
     // bail if you don't have a handler
-    if(m_messageHandlers.find(strings[0]) == m_messageHandlers.end())
+    std::map<std::string,MQTTDispatchFunction>::iterator it = m_messageHandlers.begin();
+    while (it != m_messageHandlers.end())
+    {
+        // match on the starting part of the topic ?
+        if (topicStr.compare(0, it->first.length(), it->first) == 0)
+            break;
+        it++;
+    }
+    if(it == m_messageHandlers.end())
+    {
+        std::cout << "Ignoring topic: "<< message->topic << std::endl;
         return;
-    m_messageHandlers[strings[0]](message,strings);
+    }
+    it->second(message);
 
 }
 void MQTTExecutive::Subscribe(std::string trigger,MQTTDispatchFunction handler)
@@ -74,10 +83,19 @@ void MQTTExecutive::Subscribe(std::string trigger,MQTTDispatchFunction handler)
     }
 }
 
-void MQTTExecutive::broadcast_raw_image(unsigned char* jpg,uint32_t jpgsize,const std::string& topicName,const std::string& uuid,int camid)
+void MQTTExecutive::broadcast_image(unsigned char *jpg, uint32_t jpgsize, const std::string &topicName,
+                                    const std::string &uuid, int camid)
 {
     char topic[128];
-    sprintf(topic, "cam/%d/%s/%s",camid,topicName.c_str(),uuid.c_str());
+    sprintf(topic, "image/%s/%d/%s",topicName.c_str(),camid,uuid.c_str());
+    //std::cout << "topic: " << topic << std::endl;
+    MQTTExecutive::sm_publisher->send_message(topic, jpg,jpgsize);
+}
+void MQTTExecutive::broadcast_waterfall_image(unsigned char* jpg,uint32_t jpgsize,const std::string& imageTopic,const std::string& uuid)
+{
+    char topic[256];
+    sprintf(topic, "wtf/%s/%s",imageTopic.c_str(),uuid.c_str());
+    std::cout << "Sending topic: " << topic << ",size = " << jpgsize <<std::endl;
     MQTTExecutive::sm_publisher->send_message(topic, jpg,jpgsize);
 }
 

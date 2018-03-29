@@ -49,11 +49,26 @@
 class MQTTExecutive
 {
  public:
-    typedef std::function<void(const struct mosquitto_message *message,std::vector<std::string> strings)> MQTTDispatchFunction;
+    typedef std::function<void(const struct mosquitto_message *message)> MQTTDispatchFunction;
     MQTTExecutive(std::string mqttId,std::string url,int port);
     void Subscribe(std::string trigger,MQTTDispatchFunction handler);
     void Dispatch(const struct mosquitto_message *message);
-    void broadcast_raw_image(unsigned char* jpg,uint32_t jpgsize,const std::string& topicName,const std::string& uuid,int camid);
+    /// \brief publish on the image channel
+    /// This is used to publish per camera images such as raw and rectified.
+    /// \param jpg Pointer to image data buffer in JPEG format
+    /// \param jpgsize  Byte size of the image data buffer
+    /// \param topicName full topic name will be image/<topicname>/camid/uuid
+    /// \param uuid Identifies members of a common image process step - this allows matching of source rae
+    /// stereo images and subsequent byproducts
+    /// \param camid Camera index for controller, where left == 0 and right == 1
+    void broadcast_image(unsigned char *jpg, uint32_t jpgsize, const std::string &topicName, const std::string &uuid,
+                         int camid);
+    /// \brief publsih on the waterfall channel
+    /// \param jpg Pointer to image data buffer in JPEG format
+    /// \param jpgsize Byte size of the image data buffer
+    /// \param imageTopic full topic name will be waterfall/<topicname>uuid
+    /// \param uuid Identifies members of a common image process step - this allows matching of source rae
+    void broadcast_waterfall_image(unsigned char* jpg,uint32_t jpgsize,const std::string& imageTopic,const std::string& uuid);
     static std::string CreateJSON(const std::map<std::string, std::string> &kvl, bool quoteValues);
     static MQTTWrapper* sm_publisher;
     static std::string LibraryVersion();
