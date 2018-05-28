@@ -25,6 +25,8 @@ MQTT_Tracer::MQTT_Tracer(MQTTWrapper *publisher) {
 }
 
 void MQTT_Tracer::Log(ELogSystem sys, ELogLevel lvl, const std::string &format, ...) {
+    if(m_mqtt == nullptr)
+        return;
     //if(!ShowTrace(sys,lvl)) return;
     char message[256];
     va_list args;

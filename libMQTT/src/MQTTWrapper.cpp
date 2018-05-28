@@ -33,10 +33,12 @@ MQTTWrapper::MQTTWrapper(MQTTExecutive *controller, const char *id, const char *
     this->m_controller = controller;
     this->port = port;
     this->host = host;
+    std::cout << "Connect to " << host << " at " << port << std::endl;
     connect_async(host,     // non blocking connection to broker request
                   port,
                   keepalive);
     loop_start();            // Start thread managing connection / publish / subscribe
+    std::cout << "Driver running" << std::endl;
 }
 
 MQTTWrapper::~MQTTWrapper() {

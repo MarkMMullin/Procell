@@ -21,6 +21,7 @@
 #ifndef MQTTEXECUTIVE_H_
 #define MQTTEXECUTIVE_H_
 #include <iostream>
+#include <map>
 #include <unordered_map>
 #include <cstdio>
 #include <signal.h>
@@ -51,8 +52,9 @@ class MQTTExecutive
  public:
     typedef std::function<void(const struct mosquitto_message *message)> MQTTDispatchFunction;
     MQTTExecutive(std::string mqttId,std::string url,int port);
-    void Subscribe(std::string trigger,MQTTDispatchFunction handler);
+    void Subscribe(std::string trigger,MQTTDispatchFunction handler,bool subscribeChildren = true);
     void Dispatch(const struct mosquitto_message *message);
+    void Transmit(const std::string &topicName,uint8_t* buffer,uint32_t bufSize);
     /// \brief publish on the image channel
     /// This is used to publish per camera images such as raw and rectified.
     /// \param jpg Pointer to image data buffer in JPEG format
@@ -69,10 +71,12 @@ class MQTTExecutive
     /// \param imageTopic full topic name will be waterfall/<topicname>uuid
     /// \param uuid Identifies members of a common image process step - this allows matching of source rae
     void broadcast_waterfall_image(unsigned char* jpg,uint32_t jpgsize,const std::string& imageTopic,const std::string& uuid);
+
+    inline MQTTWrapper* GetPublisher() { return m_publisher;}
     static std::string CreateJSON(const std::map<std::string, std::string> &kvl, bool quoteValues);
-    static MQTTWrapper* sm_publisher;
     static std::string LibraryVersion();
  private:
+    MQTTWrapper* m_publisher;
     std::map<std::string,MQTTDispatchFunction> m_messageHandlers;
     std::string m_clientName;
 };

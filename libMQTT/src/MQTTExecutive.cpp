@@ -31,21 +31,17 @@ extern void LoadExecutiveStereoConfiguration(bool enabled, int *blockSize, int *
                                              int *numDisparities, int *preFilterCap, int *preFilterSize, int *preFilterType,
                                              int *smallerBlockSize, int *speckleRange, int *speckleWindowSize,
                                              int *textureThreshold, int *uniquenessRatio, int *valuelist);
-MQTTWrapper *MQTTExecutive::sm_publisher = nullptr;
+
 
 MQTTExecutive::MQTTExecutive(std::string mqttId,std::string url,int port) {
     char hostname[256];
+    m_clientName = mqttId;
+    m_publisher = nullptr;
     gethostname(hostname, 256);
-    m_clientName = std::string(hostname) + "_" + mqttId;
-    std::cout << "MQTT Client name is " << m_clientName << std::endl;
-
-    sm_publisher = new MQTTWrapper(this, m_clientName.c_str(), url.c_str(), port);
-    new MQTT_Tracer(sm_publisher);
-//
-//    // connect for camera control messages
-//    sm_publisher->subscribe(nullptr, "camctl/#");
-    Tracer::Self()->Log(Tracer::ELogSystem::MQTT, Tracer::ELogLevel::INFO, "MQTT Online");
-
+    std::cout << hostname << std::endl;
+    m_publisher = new MQTTWrapper(this, m_clientName.c_str(), url.c_str(), port);
+    new MQTT_Tracer(nullptr);
+    Tracer::Self()->Log(Tracer::ELogSystem::MQTT, Tracer::ELogLevel::INFO, "MQTT Client %s online",std::string(hostname));
 }
 void MQTTExecutive::Dispatch(const struct mosquitto_message *message)
 {
@@ -72,32 +68,35 @@ void MQTTExecutive::Dispatch(const struct mosquitto_message *message)
     it->second(message);
 
 }
-void MQTTExecutive::Subscribe(std::string trigger,MQTTDispatchFunction handler)
+void MQTTExecutive::Subscribe(std::string trigger,MQTTDispatchFunction handler,bool subscribeChildren)
 {
     bool doSubscribe = m_messageHandlers.find(trigger) == m_messageHandlers.end();
     m_messageHandlers[trigger] = handler;
     if(doSubscribe)
     {
-        std::string tp = trigger + "/#";
-        sm_publisher->subscribe(nullptr,tp.c_str());
+        std::string tp = subscribeChildren ? trigger + "/#" : trigger;
+        m_publisher->subscribe(nullptr,tp.c_str());
     }
 }
-
+void MQTTExecutive::Transmit(const std::string &topic,uint8_t* buffer,uint32_t bufSize)
+{
+    m_publisher->send_message(topic.c_str(), buffer,bufSize);
+}
 void MQTTExecutive::broadcast_image(unsigned char *jpg, uint32_t jpgsize, const std::string &topicName,
                                     const std::string &uuid, int camid)
 {
     char topic[128];
     sprintf(topic, "image/%s/%d/%s",topicName.c_str(),camid,uuid.c_str());
     //std::cout << "topic: " << topic << std::endl;
-    MQTTExecutive::sm_publisher->send_message(topic, jpg,jpgsize);
+    m_publisher->send_message(topic, jpg,jpgsize);
 }
 void MQTTExecutive::broadcast_waterfall_image(unsigned char* jpg,uint32_t jpgsize,const std::string& imageTopic,const std::string& uuid)
 {
     char topic[256];
     sprintf(topic, "wtf/%s/%s",imageTopic.c_str(),uuid.c_str());
-    std::cout << "Sending topic: " << topic << ",size = " << jpgsize <<std::endl;
-    MQTTExecutive::sm_publisher->send_message(topic, jpg,jpgsize);
-}
+    m_publisher->send_message(topic, jpg,jpgsize);
+    //std::cout << "Raw image ship:" << topic << std::endl;
+ }
 
 /**
  * @name createJSON - Converts a dictionary of KV pairs to an equivalent JSON representation

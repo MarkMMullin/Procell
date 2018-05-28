@@ -10,15 +10,15 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS} -pg" CACHE
         STRING "Profile build flags." FORCE)
 get_filename_component(BUILDDIR ${CMAKE_CURRENT_BINARY_DIR} NAME_WE)
 
-if(BUILDDIR STREQUAL "Release")
+if(BUILDDIR MATCHES "Release$")
     message(STATUS, "Building RELEASE package")
     set(CMAKE_BUILD_TYPE "Release" CACHE
             STRING "Directory forced RELEASE build." FORCE)
-elseif(BUILDDIR STREQUAL "Debug")
+elseif(BUILDDIR MATCHES "Debug$")
     message(STATUS, "Building DEBUG package")
     set(CMAKE_BUILD_TYPE "Debug" CACHE
             STRING "Directory forced DEBUG build." FORCE)
-elseif(BUILDDIR STREQUAL "Profile")
+elseif(BUILDDIR MATCHES "Profile$")
     message(STATUS, "Building PROFILING package")
     set(CMAKE_BUILD_TYPE "Profile" CACHE
             STRING "Directory forced PROFILE build." FORCE)
